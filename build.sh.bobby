@@ -1,0 +1,68 @@
+#!/bin/bash
+
+DEBUG=""
+
+# We need to source the agnstrom-core stuff in the SDK.  
+# This is so the scons compiles correctly if we ever 
+# run this from the command line.
+. /opt/angstrom-denzil/environment-setup-armv7a-vfp-angstrom-linux-uclibceabi
+
+set -x
+set -e
+CUR_DIR="`pwd`"
+
+# Remove the existing build, if it already existed
+if [ $DEBUG ]; then
+    rm -rf ~/nfsroot/LF/Base/CartridgeWriter/*
+else
+    rm -rf ~/erootfs/LF/Base/CartridgeWriter/*
+fi
+
+# Compile using scons.  This will.....
+#	1. Update the meta.inf.
+#	2. Copy over resources.
+#	3. Compile the executable.
+if [ $DEBUG ]; then
+    scons sdk_dir=${HOME}/LFAriaSDK debug lfplatform=Lucy
+else
+    scons -j12 lfplatform=Lucy depoly_dir=/home/bobby/Project/LeapPadSantiago/deploy/ verbose=t build_version="9.1.0" sdk_dir=/home/bobby/Project/LeapPadSantiago/include/LFAriaSDK_2.0-9.1.0/
+#   scons sdk_dir=${HOME}/LFAriaSDK       lfplatform=Lucy verbose=t
+fi
+
+# I need to do an lfpkg of CartridgeWriter here, but don't know the path to it during the build
+# search for the lfpkg tool (included in the linux dist of the Base FW)
+#if [ -e ~/Emerald/LinuxDist-Emerald/packages/lfpkg/lfpkg ] ; then 
+#	LFPKG_PATH=~/Emerald/LinuxDist-Emerald/packages/lfpkg/lfpkg
+#elif [ -e $PROJECT_PATH/packages/lfpkg/lfpkg ] ; then # found lfpkg on this folder
+#	LFPKG_PATH=$PROJECT_PATH/packages/lfpkg/lfpkg	
+#else 	
+#	LFPKG_PATH="`find ~/Emerald/LinuxDist* -executable -name lfpkg | grep -m 1 'packages/lfpkg/lfpkg' `"
+#fi
+# Use no path. Now it is in ~/bin
+
+LFPKG_PATH=lfpkg
+
+# if found lfpkg, then package the file up into a package
+if [  "X$LFPKG_PATH" != "X" ] ; then 
+    if [ $DEBUG ]; then
+	    # Path for debug build
+	    cd ~/nfsroot/LF/Base/
+    else
+	    # Path for release build
+        cd ~/erootfs/LF/Base/
+    fi
+#	mv CartridgeWriter/rsrc/CartridgeWriterConfig.txt /tmp
+	$LFPKG_PATH -a create CartridgeWriter > /dev/null
+#	mv /tmp/CartridgeWriterConfig.txt CartridgeWriter/rsrc
+	VERSION="`cat CartridgeWriter/meta.inf | grep ^Version= | cut -d '"' -f2`"
+
+    chmod +x CartridgeWriter/*
+    chmod +x CartridgeWriter/rsrc/mkfs*
+
+	zip -r -9 CartridgeWriter-$VERSION.lfp CartridgeWriter
+	cp CartridgeWriter-$VERSION.lfp /media/sf_UbuntuShare # move the lfp file to package directory. 
+else 
+	echo "NO lfpkg found on your system.  It is part of the LinuxDist-Emerald repository."
+fi
+cd $CUR_DIR
+exit 0;

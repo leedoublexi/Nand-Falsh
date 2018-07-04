@@ -1,0 +1,18 @@
+# add anything you want git to ignore here
+*.pyc
+Temp/
+.sconsign.dblite
+*swo
+*swp
+tags
+new-calib/*o
+new-calib/acc-bubble
+new-calib/acc-calib
+new-calib/acc-show
+new-calib/batt
+new-calib/collect-pdata
+new-calib/mb
+new-calib/mph
+new-calib/new-calib
+new-calib/pfun
+new-calib/ts-rawtest
